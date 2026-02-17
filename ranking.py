@@ -73,6 +73,7 @@ if access_token:
     df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
 
     # 4. Salvar
-    with pd.ExcelWriter(NOME_ARQUIVE) as writer:
+    with pd.ExcelWriter(NOME_ARQUIVO) as writer:
         df_visual.to_excel(writer, sheet_name='Ranking', index=False)
         pd.DataFrame(list(ids_ja_somados), columns=['id']).to_excel(writer, sheet_name='IDs_Processados', index=False)
+
