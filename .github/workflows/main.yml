@@ -27,20 +27,12 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: python ranking.py
 
-      - name: Salvar planilha atualizada
-        run: |
-          git config --global user.name "Robo CNB"
-          git config --global user.email "bot@github.com"
-          git add Ranking_CNB_1000km_2026.xlsx
-          git commit -m "Ranking atualizado" || exit 0
-          - name: Salvar a planilha atualizada no GitHub
+      - name: Salvar a planilha atualizada no GitHub
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "Robo CNB"
           git config --global user.email "bot@github.com"
           git add Ranking_CNB_1000km_2026.xlsx
-          # O comando abaixo evita erro se não houver nada novo para salvar
           git commit -m "Ranking atualizado automaticamente" || exit 0
-          # Usando o token para autenticar o push
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
