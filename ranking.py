@@ -43,7 +43,7 @@ else:
 # 2. Puxar dados do Strava
 access_token = obter_access_token()
 if access_token:
-    for pagina in range(1, 6):
+    for pagina in range(1, 20):
         url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
         atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, params={'per_page': 200, 'page': pagina}).json()
         if not atividades or 'errors' in atividades or len(atividades) == 0: break
@@ -77,3 +77,4 @@ if access_token:
     with pd.ExcelWriter(NOME_ARQUIVO) as writer:
         df_visual.to_excel(writer, sheet_name='Ranking', index=False)
         pd.DataFrame(list(ids_ja_somados), columns=['id']).to_excel(writer, sheet_name='IDs_Processados', index=False)
+
