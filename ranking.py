@@ -1,13 +1,12 @@
 import requests
 import pandas as pd
 import os
-import datetime
 
-# --- CONFIGURAÇÃO (O GitHub vai ler isso das 'Secrets') ---
+# --- CONFIGURAÇÃO ---
 CLIENT_ID = os.environ.get('CLIENT_ID')
 CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
 REFRESH_TOKEN = os.environ.get('REFRESH_TOKEN')
-CLUB_ID = '1921916' # Coloque o número do seu clube aqui
+CLUB_ID = '1921916' # Substitua pelo ID do seu clube se for diferente
 NOME_ARQUIVO = 'Ranking_CNB_1000km_2026.xlsx'
 
 def obter_access_token():
@@ -26,15 +25,19 @@ def formatar_km(valor):
 def formatar_alt(valor):
     return f"{int(valor):,}".replace(",", ".") + " m"
 
-# 1. Tentar carregar planilha existente no repositório
+# 1. Carregar planilha existente
 if os.path.exists(NOME_ARQUIVO):
     with pd.ExcelFile(NOME_ARQUIVO) as reader:
         df_ranking = pd.read_excel(reader, sheet_name='Ranking')
-        # Limpa formatação para cálculo
+        
+        # LIMPEZA DOS DADOS (Onde deu o erro)
         if df_ranking['KM Total'].dtype == object:
-            df_ranking['KM Total'] = df_ranking['KM Total'].str.replace(' km', '').str.replace('.', '').str.replace(',', '.').astype(float)
+            df_ranking['KM Total'] = df_ranking['KM Total'].str.replace(' km', '', regex=False).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
+        
         if df_ranking['Altimetria (m)'].dtype == object:
-            df_ranking['Altimetria (m)'].str.replace(' m', '').str.replace('.', '').astype(float)
+            # Remove o ' m' e o ponto de milhar antes de converter
+            df_ranking['Altimetria (m)'] = df_ranking['Altimetria (m)'].str.replace(' m', '', regex=False).str.replace('.', '', regex=False).astype(float)
+            
         df_ranking = df_ranking.set_index('Atleta')
         
         df_historico = pd.read_excel(reader, sheet_name='IDs_Processados')
@@ -48,8 +51,7 @@ access_token = obter_access_token()
 if access_token:
     for pagina in range(1, 6):
         url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
-        atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, 
-                                  params={'per_page': 200, 'page': pagina}).json()
+        atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, params={'per_page': 200, 'page': pagina}).json()
         if not atividades or 'errors' in atividades or len(atividades) == 0: break
 
         for act in atividades:
@@ -70,7 +72,7 @@ if access_token:
     df_visual['KM Total'] = df_visual['KM Total'].apply(formatar_km)
     df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
 
-    # 4. Salvar localmente (o GitHub fará o 'upload' depois)
-    with pd.ExcelWriter(NOME_ARQUIVO) as writer:
+    # 4. Salvar
+    with pd.ExcelWriter(NOME_ARQUIVE) as writer:
         df_visual.to_excel(writer, sheet_name='Ranking', index=False)
         pd.DataFrame(list(ids_ja_somados), columns=['id']).to_excel(writer, sheet_name='IDs_Processados', index=False)
