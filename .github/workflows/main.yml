@@ -2,7 +2,7 @@ name: Atualizar Ranking CNB 1.000 km Automático
 
 on:
   schedule:
-    - cron: '0 1 * * *' # Roda todo dia às 22h (horário de Brasília)
+    - cron: '0 3 * * *' # Roda todo dia às 0h (horário de Brasília)
   workflow_dispatch: 
 
 jobs:
