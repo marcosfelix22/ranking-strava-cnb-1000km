@@ -31,13 +31,15 @@ if os.path.exists(NOME_ARQUIVO):
             df_ranking['Altimetria (m)'] = df_ranking['Altimetria (m)'].str.replace(' m', '', regex=False).str.replace('.', '', regex=False).astype(float)
         
         if 'Treinos' in df_ranking.columns:
-            df_ranking['Treinos'] = df_ranking['Treinos'].astype(int)
+            df_ranking['Treinos'] = df_ranking['Treinos'].fillna(0).astype(int)
         else:
-            # Inicializa com zero se a coluna ainda não existir na planilha antiga
             df_ranking['Treinos'] = 0
 
         df_ranking['Atleta'] = df_ranking['Atleta'].str.strip()
-        df_ranking = df_ranking.groupby('Atleta').sum() 
+        # Define o index antes de agrupar para manter a consistência das colunas
+        df_ranking = df_ranking.set_index('Atleta')
+        df_ranking = df_ranking.groupby(level=0).sum() 
+        
         df_historico = pd.read_excel(reader, sheet_name='IDs_Processados')
         ids_ja_somados = set(df_historico['id'].astype(str).tolist())
 else:
@@ -48,7 +50,6 @@ else:
 access_token = obter_access_token()
 if access_token:
     print(f"Buscando atividades desde 01/01/2026...")
-    # Varre até 10 páginas para tentar pegar o máximo de histórico possível
     for pagina in range(1, 11):
         url = f"https://www.strava.com/api/v3/clubs/{CLUB_ID}/activities"
         atividades = requests.get(url, headers={'Authorization': f'Bearer {access_token}'}, params={'per_page': 200, 'page': pagina}).json()
@@ -57,30 +58,25 @@ if access_token:
             break
 
         for act in atividades:
-            # Chave única
             id_unico = f"{act.get('distance')}_{act.get('elapsed_time')}_{act.get('athlete', {}).get('lastname')}"
             
-            # Se já processamos, pula
             if id_unico in ids_ja_somados:
                 continue
 
-            # Pega a distância e altimetria
             dist_km = act.get('distance', 0) / 1000
             alt = act.get('total_elevation_gain', 0)
             
-            # Só soma se houver distância
             if dist_km > 0:
                 p_nome = act.get('athlete', {}).get('firstname', 'Atleta')
                 s_nome = act.get('athlete', {}).get('lastname', '')
                 nome_limpo = f"{p_nome} {s_nome}".strip()
                 
                 if nome_limpo not in df_ranking.index:
-                    # Inicializa os valores padrão: KM, Altimetria e o contador de Treinos
                     df_ranking.loc[nome_limpo] = [0.0, 0.0, 0]
                 
                 df_ranking.at[nome_limpo, 'KM Total'] += dist_km
                 df_ranking.at[nome_limpo, 'Altimetria (m)'] += alt
-                df_ranking.at[nome_limpo, 'Treinos'] += 1 # Incrementa a quantidade de treinos
+                df_ranking.at[nome_limpo, 'Treinos'] = int(df_ranking.at[nome_limpo, 'Treinos']) + 1
                 ids_ja_somados.add(id_unico)
 
     # 3. Ordenar e Formatar
@@ -90,7 +86,7 @@ if access_token:
     df_visual = df_ranking.reset_index().copy()
     df_visual['KM Total'] = df_visual['KM Total'].apply(formatar_km)
     df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
-    df_visual['Treinos'] = df_visual['Treinos'].astype(int) # Garante formato numérico de inteiros
+    df_visual['Treinos'] = df_visual['Treinos'].astype(int)
 
     # 4. Salvar
     with pd.ExcelWriter(NOME_ARQUIVO) as writer:
