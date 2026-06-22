@@ -29,12 +29,19 @@ if os.path.exists(NOME_ARQUIVO):
             df_ranking['KM Total'] = df_ranking['KM Total'].str.replace(' km', '', regex=False).str.replace('.', '', regex=False).str.replace(',', '.', regex=False).astype(float)
         if df_ranking['Altimetria (m)'].dtype == object:
             df_ranking['Altimetria (m)'] = df_ranking['Altimetria (m)'].str.replace(' m', '', regex=False).str.replace('.', '', regex=False).astype(float)
+        
+        if 'Treinos' in df_ranking.columns:
+            df_ranking['Treinos'] = df_ranking['Treinos'].astype(int)
+        else:
+            # Inicializa com zero se a coluna ainda não existir na planilha antiga
+            df_ranking['Treinos'] = 0
+
         df_ranking['Atleta'] = df_ranking['Atleta'].str.strip()
         df_ranking = df_ranking.groupby('Atleta').sum() 
         df_historico = pd.read_excel(reader, sheet_name='IDs_Processados')
         ids_ja_somados = set(df_historico['id'].astype(str).tolist())
 else:
-    df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)']).set_index('Atleta')
+    df_ranking = pd.DataFrame(columns=['Atleta', 'KM Total', 'Altimetria (m)', 'Treinos']).set_index('Atleta')
     ids_ja_somados = set()
 
 # 2. Puxar dados do Strava (Varredura Profunda)
@@ -68,10 +75,12 @@ if access_token:
                 nome_limpo = f"{p_nome} {s_nome}".strip()
                 
                 if nome_limpo not in df_ranking.index:
-                    df_ranking.loc[nome_limpo] = [0.0, 0.0]
+                    # Inicializa os valores padrão: KM, Altimetria e o contador de Treinos
+                    df_ranking.loc[nome_limpo] = [0.0, 0.0, 0]
                 
                 df_ranking.at[nome_limpo, 'KM Total'] += dist_km
                 df_ranking.at[nome_limpo, 'Altimetria (m)'] += alt
+                df_ranking.at[nome_limpo, 'Treinos'] += 1 # Incrementa a quantidade de treinos
                 ids_ja_somados.add(id_unico)
 
     # 3. Ordenar e Formatar
@@ -81,6 +90,7 @@ if access_token:
     df_visual = df_ranking.reset_index().copy()
     df_visual['KM Total'] = df_visual['KM Total'].apply(formatar_km)
     df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
+    df_visual['Treinos'] = df_visual['Treinos'].astype(int) # Garante formato numérico de inteiros
 
     # 4. Salvar
     with pd.ExcelWriter(NOME_ARQUIVO) as writer:
