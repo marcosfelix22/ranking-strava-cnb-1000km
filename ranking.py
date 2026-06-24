@@ -64,7 +64,7 @@ if access_token:
 
         for act in resp:
 
-            # ID real do Strava
+            # ID único real do Strava
             activity_id = act.get('id')
 
             if not activity_id:
@@ -78,7 +78,7 @@ if access_token:
             if act.get('sport_type') != 'Run':
                 continue
 
-            # Data
+            # Data da atividade
             try:
                 data_atividade = datetime.strptime(
                     act['start_date'],
@@ -98,9 +98,10 @@ if access_token:
 
             alt = act.get('total_elevation_gain', 0)
 
-            # Atleta
+            # Atleta (corrigido variável)
             atleta = act.get('athlete', {})
-            nome = f"{athlete.get('firstname','')} {athlete.get('lastname','')}".strip().upper()
+
+            nome = f"{atleta.get('firstname','')} {atleta.get('lastname','')}".strip().upper()
 
             novas_atividades.append({
                 'activity_id': activity_id,
@@ -117,7 +118,7 @@ if access_token:
             pd.DataFrame(novas_atividades)
         ], ignore_index=True)
 
-    # remove duplicados reais
+    # Remove duplicados reais
     df_atividades = df_atividades.drop_duplicates(subset=['activity_id'])
 
     # --- RANKING ---
@@ -139,13 +140,15 @@ if access_token:
     # posição
     ranking.insert(0, 'Posição', range(1, len(ranking) + 1))
 
-    # meta
+    # garantir tipo numérico
     ranking['KM Total'] = pd.to_numeric(ranking['KM Total'], errors='coerce')
 
-ranking['Meta 1000km (%)'] = (ranking['KM Total'] / 1000 * 100).round(1)
+    # meta 1000 km
+    ranking['Meta 1000km (%)'] = (ranking['KM Total'] / 1000 * 100).round(1)
 
-    # formato visual
+    # --- VERSÃO VISUAL ---
     df_visual = ranking.copy()
+
     df_visual['KM Total'] = df_visual['KM Total'].apply(formatar_km)
     df_visual['Altimetria (m)'] = df_visual['Altimetria (m)'].apply(formatar_alt)
 
