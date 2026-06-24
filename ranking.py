@@ -75,8 +75,8 @@ if access_token:
                 continue
 
             # Apenas corrida
-            if act.get('sport_type') != 'Run':
-                continue
+            if act.get('sport_type') not in ['Run', 'VirtualRun', 'TrailRun']:
+    continue
 
             # Data da atividade
             try:
