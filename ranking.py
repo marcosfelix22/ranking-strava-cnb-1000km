@@ -140,7 +140,9 @@ if access_token:
     ranking.insert(0, 'Posição', range(1, len(ranking) + 1))
 
     # meta
-    ranking['Meta 1000km (%)'] = (ranking['KM Total'] / 1000 * 100).round(1)
+    ranking['KM Total'] = pd.to_numeric(ranking['KM Total'], errors='coerce')
+
+ranking['Meta 1000km (%)'] = (ranking['KM Total'] / 1000 * 100).round(1)
 
     # formato visual
     df_visual = ranking.copy()
